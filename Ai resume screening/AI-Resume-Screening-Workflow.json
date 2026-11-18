@@ -1,0 +1,874 @@
+{
+  "name": "Ai resume screening",
+  "nodes": [
+    {
+      "parameters": {
+        "inputDataFieldName": "Resume",
+        "name": "={{ $json[\"job-code\"] }}-{{ $json[\"First Name\"] }}-{{ $json[\"Last Name\"] }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "Resumes",
+          "cachedResultUrl": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        0,
+        -128
+      ],
+      "id": "d439b515-52aa-4dfd-8ca2-349198aa29e9",
+      "name": "Upload file"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Resume",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        64
+      ],
+      "id": "1eb4dd82-ef56-447b-9fae-4ff06bc34d38",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        464
+      ],
+      "id": "a955ffb8-289f-494d-8ef1-355cd7d684a1",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        576,
+        64
+      ],
+      "id": "272b2598-f968-404c-85a8-97694786dc09",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "options": {
+          "summarizationMethodAndPrompts": {
+            "values": {
+              "combineMapPrompt": "=Given the information below for a job applicant, write a concise summary about it. While summarizing, be professional, concise, & conversational. Use 300 words or less.\n\nHere is the detailed information about the applicant:\n\nName: {{ $json.output.full_name }}\nCity: {{ $json.output.city }}\nEducational qualification: {{ $json.output['Education Qualification'] }}\nJob History: {{ $json.output[\"Job History\"] }}\nSkills: {{ $json.output.Skills }}\nPrevious experience: {{ $json.output[\"Job History\"] }}\nApplied date: {{ $now.format('yyyy-MM-dd') }}",
+              "prompt": "=Given the information below for a job applicant, write a concise summary about it. While summarizing, be professional, concise, & conversational. Use 300 words or less.\n\nHere is the detailed information about the applicant:\n\nName: {{ $json.output.full_name }}\nCity: {{ $json.output.city }}\nEducational qualification: {{ $json.output['Education Qualification'] }}\nJob History: {{ $json.output[\"Job History\"] }}\nSkills: {{ $json.output.Skills }}\nPrevious experience: {{ $json.output[\"Job History\"] }}\nApplied date: {{ $now.format('yyyy-MM-dd') }}"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        64
+      ],
+      "id": "b39a4933-c80a-4908-9a77-2e5dbfc980ac",
+      "name": "Summarization Chain"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "YOUR_GOOGLE_DOC_ID"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        64
+      ],
+      "id": "dc2080ab-05c7-4bae-8a29-719ff9079260",
+      "name": "Get a document"
+    },
+    {
+      "parameters": {
+        "formTitle": "Apply for the job",
+        "formDescription": "Full Stack Developer",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "First Name"
+            },
+            {
+              "fieldLabel": "Last Name"
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "Mobile Number",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "Resume",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            },
+            {
+              "fieldType": "hiddenField",
+              "fieldName": "job-code",
+              "fieldValue": "job-code-001"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -224,
+        -80
+      ],
+      "id": "7802eaf5-cfd7-436c-81bd-a78a7c59c119",
+      "name": "Full Stack Developer"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Education Qualification",
+              "description": "Summary of academic career, focusing on undergraduate and university studies. Summarize  in 100 words maximum\n",
+              "required": true
+            },
+            {
+              "name": "Job History ",
+              "description": "Summary of work histroy and recent work experience. Summarize  in 100 words maximum"
+            },
+            {
+              "name": "Skills",
+              "description": "Extract the candidate's technical skills. What software, framework, functional skills they are proficient in. Make a bulleted list.",
+              "required": true
+            },
+            {
+              "name": "Experience",
+              "description": "Extract years of experience and group experience by job function or role type. Format Example: Total Years Exp: 7 – Account Executive: 2 years – Sales Development Representative: 2 years – Account Manager: 3 years",
+              "required": true
+            },
+            {
+              "name": "Title & Employer",
+              "description": "Extract most recent job title and employer"
+            },
+            {
+              "name": "Total Years Experience",
+              "description": "Extract total years of experience anf format as Total Year Exp:"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        -48
+      ],
+      "id": "5b1e09d1-eb8a-4fac-bed5-b43333216dce",
+      "name": "Professional Details"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"telephone\": {\n      \"type\": \"string\",\n      \"description\": \"Phone number of the contact (digits only)\"\n    },\n    \"city\": {\n      \"type\": \"string\",\n      \"description\": \"City of the contact\"\n    },\n    \"full_name\": {\n      \"type\": \"string\",\n      \"description\": \"Full name of the contact\"\n    },\n    \"email\": {\n      \"type\": \"string\",\n      \"format\": \"email\",\n      \"description\": \"Email address of the contact\"\n    },\n    \"linkedin_profile\": {\n      \"type\": \"string\",\n      \"format\": \"url\",\n      \"description\": \"LinkedIn Profile of the contact\"\n    }\n  },\n  \"required\": [\n    \"full_name\",\n    \"email\",\n    \"telephone\",\n    \"city\",\n    \"linkedin_profile\"\n  ]\n}",
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you should set the value to NA"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        352
+      ],
+      "id": "11a2fe3c-cafa-4059-95d3-9c342d551a7d",
+      "name": "Personal Details"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Job Posting Details: {{ $json.content }}\n\nHere is the Candidate Profile Summary:{{ $('Summarization Chain').item.json.output.text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an HR expert and you need to understand if the candidate aligns with the profile sought by the company. You must give a score from 1 to 10, where 1 means the candidate does not align with what is required, while 10 means they are the ideal candidate because they fully reflect the desired profile. Furthermore, in the 'consideration' field, explain the reasoning behind your score."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1376,
+        64
+      ],
+      "id": "c08e2f37-aef0-4e49-9fe4-09a0c6227422",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"ai_resume_score\": {\n      \"type\": \"string\"\n    },\n    \"ai_evaluation\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1456,
+        288
+      ],
+      "id": "3d26afeb-fbb6-44ab-8579-724c756099d1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.ai_resume_score }}",
+                    "rightValue": 7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "e2a4b4d3-7f4c-4860-99f4-7ed2a6346783"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Shortlisted"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "2b049990-9ead-43df-aa63-58981cc4e1b9",
+                    "leftValue": "={{ $json.output.ai_resume_score }}",
+                    "rightValue": 5,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Maybe"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Ignored"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        1728,
+        48
+      ],
+      "id": "22ef2120-57b4-450d-90f0-91cfaad9fa78",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "52979a31-be46-49aa-b955-e406232149d2",
+              "name": "ai_status",
+              "value": "Shortlisted",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1952,
+        -128
+      ],
+      "id": "72160b0a-334e-4e27-bf48-11ff45567eef",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "52979a31-be46-49aa-b955-e406232149d2",
+              "name": "ai_status",
+              "value": "Maybe",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1952,
+        160
+      ],
+      "id": "2cc26a14-ac62-4cb6-9b9e-530103ee0635",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "52979a31-be46-49aa-b955-e406232149d2",
+              "name": "ai_status",
+              "value": "Ignored",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1952,
+        400
+      ],
+      "id": "48be03e7-9a52-4201-81b2-7d45887fbd99",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Job Applicants Tracker",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1494695859,
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Code": "={{ $('Full Stack Developer').item.json['job-code'] }}",
+            "Applicant Name": "={{ $('Full Stack Developer').item.json['First Name'] }} {{ $('Full Stack Developer').item.json['Last Name'] }}",
+            "Applicant Email": "={{ $('Full Stack Developer').item.json.Email }}",
+            "Application Date": "={{ $('Full Stack Developer').item.json.submittedAt.toDateTime().format('yyyy-MM-dd') }}",
+            "Final Score": "={{ $json.output.ai_resume_score }}",
+            "AI Status": "={{ $json.ai_status }}",
+            "AI Assessment": "={{ $json.output.ai_evaluation }}",
+            "Total Experience": "={{ $('Merge').item.json.output['Total Years Experience'] }}",
+            "Experience Summary": "={{ $('Merge').item.json.output.Experience }}",
+            "Job History": "={{ $('Merge').item.json.output['Job History '] }}",
+            "Skills": "={{ $('Merge').item.json.output.Skills }}",
+            "Applicant Location": "={{ $('Merge').item.json.output.city }}",
+            "Applicant Phone": "={{ $('Merge').item.json.output.telephone }}",
+            "Applicant Education": "={{ $('Merge').item.json.output['Education Qualification'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job Code",
+              "displayName": "Job Code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hiring Manager",
+              "displayName": "Hiring Manager",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Hiring Manager Email",
+              "displayName": "Hiring Manager Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Applicant Name",
+              "displayName": "Applicant Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Applicant Email",
+              "displayName": "Applicant Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Application Date",
+              "displayName": "Application Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Final Score",
+              "displayName": "Final Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Status",
+              "displayName": "AI Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Assessment",
+              "displayName": "AI Assessment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Experience",
+              "displayName": "Total Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Experience Summary",
+              "displayName": "Experience Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job History",
+              "displayName": "Job History",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Skills",
+              "displayName": "Skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Applicant Location",
+              "displayName": "Applicant Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Applicant Phone",
+              "displayName": "Applicant Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Applicant Education",
+              "displayName": "Applicant Education",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2176,
+        16
+      ],
+      "id": "cc6281ec-f3f9-419d-9aa5-b3316c80e765",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Full Stack Developer').item.json.Email }}",
+        "subject": "Congrats, Your profile is shortlisted",
+        "message": "=Hello {{ $('Merge').item.json.output.full_name }},\n\nYour profile has been shortlisted for our Full Stack Developer profile.\n\nPlease share some slots next week so that we can have a short 15 minutes connect.\n\nRegards,\nHR Team",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Recruitment Team"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2176,
+        -176
+      ],
+      "id": "78b98797-20f1-4746-be4e-f373054c1596",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Full Stack Developer').item.json.Email }}",
+        "subject": "Update on Your Application – Full Stack Developer",
+        "message": "=Hello {{ $('Merge').item.json.output.full_name }},\n\nThank you for taking the time to apply for the Full Stack Developer position and for showing interest in our organization.\n\nAfter carefully reviewing your profile, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your interest and the effort you put into the application process. We encourage you to apply for future opportunities that match your skills and experience.\n\nWe wish you all the best in your future career endeavours.\n\nRegards,\nHR Team",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Recruitment Team"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2176,
+        400
+      ],
+      "id": "3c4a571c-f4a5-4769-a37c-3d3a5cf732cb",
+      "name": "Send a message1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Full Stack Developer').item.json.Email }}",
+        "subject": "Update on Your Application – Full Stack Developer",
+        "message": "=Hello {{ $('Merge').item.json.output.full_name }},\n\nThank you for your interest in the Full Stack Developer position and for taking the time to apply.\n\nWe have reviewed your profile and would like to inform you that your application is currently on hold while we evaluate our hiring requirements and shortlist candidates for the next stage.\n\nWe appreciate your patience and will keep your profile under consideration for potential opportunities. Our HR team may reach out to you if there is a suitable opportunity to move forward.\n\nThank you for your understanding.\n\nRegards,\nHR Team",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Recruitment Team"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2176,
+        208
+      ],
+      "id": "6ebd5ade-7e20-4444-8890-b2e1ce89ae7a",
+      "name": "Send a message2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Upload file": {
+      "main": [
+        []
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Personal Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Professional Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Personal Details",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Professional Details",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Summarization Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Summarization Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization Chain": {
+      "main": [
+        [
+          {
+            "node": "Get a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Full Stack Developer": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Professional Details": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Personal Details": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get a document": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": [],
+  "tags": []
+}
